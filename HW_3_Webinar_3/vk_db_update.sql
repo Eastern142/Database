@@ -45,7 +45,7 @@ CREATE TABLE `goods_description` (
  * с разными таблицами будет на мой взгляд, решил пойти по более простому пути, сомнения только в том, решается ли это при помощи БД?, можно и программно реализовать,
  * без ответа */
 
-DROP TABLE IF EXISTS `activity status`;
+DROP TABLE IF EXISTS `activity_status`;
 CREATE TABLE `activity status` (
 	`active_user_id` SERIAL PRIMARY KEY NOT NULL,
 	`activity status` ENUM('Online', 'Offline'),
