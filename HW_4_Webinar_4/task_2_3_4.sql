@@ -4,6 +4,12 @@ USE vk;
 
 SELECT DISTINCT firstname FROM users;
 
+/* Еще варианты
+SELECT DISTINCT firstname FROM users ORDER BY firstname;
+
+SELECT firstname FROM users GROUP BY firstname ORDER BY firstname;
+*/
+
 /* Написать скрипт, отмечающий несовершеннолетних пользователей как неактивных (поле is_active = false).
    Предварительно добавить такое поле в таблицу profiles со значением по умолчанию = true (или 1). */
 
@@ -18,6 +24,21 @@ WHERE (YEAR(CURRENT_DATE) - YEAR(birthday)) < 18;
 
 SELECT birthday FROM profiles
 WHERE (YEAR(CURRENT_DATE) - YEAR(birthday)) < 18;
+
+/* Еще варианты
+ALTER TABLE profiles
+-- DROP COLUMN is_active;
+ADD COLUMN is_active BIT DEFAULT 1;
+
+UPDATE profiles
+SET
+	is_active = 0
+WHERE (birthday + INTERVAL 18 YEAR) > NOW();
+
+SELECT * FROM profiles
+WHERE is_active = 0
+ORDER BY birthday;
+*/
 
 /* Написать скрипт, удаляющий сообщения «из будущего» (дата позже сегодняшней) */
 
@@ -76,3 +97,27 @@ SELECT * FROM messages;
 
 DELETE FROM messages
 WHERE created_at < CURRENT_TIMESTAMP();
+
+/* Еще варианты
+-- добавим флаг is_deleted 
+ALTER TABLE messages 
+ADD COLUMN is_deleted BIT DEFAULT 0;
+
+-- отметим пару сообщений неправильной датой
+UPDATE messages
+SET created_at = now() + INTERVAL 1 YEAR
+LIMIT 2;
+
+-- отметим, как удаленные, сообщения "из будущего"
+UPDATE messages
+SET is_deleted = 1
+WHERE created_at > NOW();
+
+
+-- физически удалим сообщения "из будущего"
+-- delete from messages
+-- where created_at > NOW()
+
+-- проверим
+SELECT * FROM messages ORDER BY created_at DESC;
+*/
