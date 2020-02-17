@@ -1,6 +1,6 @@
 USE vk;
 
-/* Написать скрипт, возвращающий список имен (только firstname) пользователей без повторений в алфавитном порядке */
+/* Задача №1. Написать скрипт, возвращающий список имен (только firstname) пользователей без повторений в алфавитном порядке */
 
 SELECT DISTINCT firstname FROM users;
 
@@ -10,7 +10,7 @@ SELECT DISTINCT firstname FROM users ORDER BY firstname;
 SELECT firstname FROM users GROUP BY firstname ORDER BY firstname;
 */
 
-/* Написать скрипт, отмечающий несовершеннолетних пользователей как неактивных (поле is_active = false).
+/* Задача №2. Написать скрипт, отмечающий несовершеннолетних пользователей как неактивных (поле is_active = false).
    Предварительно добавить такое поле в таблицу profiles со значением по умолчанию = true (или 1). */
 
 ALTER TABLE profiles
@@ -40,7 +40,7 @@ WHERE is_active = 0
 ORDER BY birthday;
 */
 
-/* Написать скрипт, удаляющий сообщения «из будущего» (дата позже сегодняшней) */
+/* Задача №3. Написать скрипт, удаляющий сообщения «из будущего» (дата позже сегодняшней) */
 
 INSERT INTO `messages` VALUES ('1','1','1','Expedita consequatur et in sit est. Distinctio quibusdam voluptatem qui porro. Dolore aperiam molestias ut corrupti corrupti sint aut. Et voluptates quam dicta dolor aut natus et.','2000-03-16 18:04:11'),
 ('2','2','2','Et vero nisi architecto asperiores hic voluptate. Enim perspiciatis vero officiis sequi quidem eius. Numquam aliquam sunt molestiae dolor enim. Ipsam aliquam quis officia aut non ut est.','2012-02-20 20:33:06'),
@@ -103,20 +103,20 @@ WHERE created_at < CURRENT_TIMESTAMP();
 ALTER TABLE messages 
 ADD COLUMN is_deleted BIT DEFAULT 0;
 
--- отметим пару сообщений неправильной датой
+-- Отметим пару сообщений неправильной датой
 UPDATE messages
 SET created_at = now() + INTERVAL 1 YEAR
 LIMIT 2;
 
--- отметим, как удаленные, сообщения "из будущего"
+-- Отметим, как удаленные, сообщения "из будущего"
 UPDATE messages
 SET is_deleted = 1
 WHERE created_at > NOW();
 
 
--- физически удалим сообщения "из будущего"
--- delete from messages
--- where created_at > NOW()
+-- Физически удалим сообщения "из будущего"
+-- DELETE FROM messages
+-- WHERE created_at > NOW()
 
 -- проверим
 SELECT * FROM messages ORDER BY created_at DESC;
