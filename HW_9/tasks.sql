@@ -1,4 +1,5 @@
 					-- Практическое задание по теме “Транзакции, переменные, представления” --
+					
 	/* Задача №1. В базе данных shop и sample присутствуют одни и те же таблицы, учебной базы данных.
  	 * Переместите запись id = 1 из таблицы shop.users в таблицу sample.users. Используйте транзакции. */
 
@@ -22,39 +23,222 @@ START TRANSACTION;
 
 -- Вставим запись с id = 1 в копию 
 INSERT INTO different.users_from_shop_course_database
-	SELECT * FROM shop_course_database.users where id = 1;
+	SELECT * FROM shop_course_database.users WHERE id = 1;
 -- Проверим правильность результата
 SELECT * FROM users_from_shop_course_database;
 
 -- Если все хорошо, подтвердим транзакцию
 COMMIT;
 
-	/* Задача №2. Создайте представление, которое выводит название name товарной позиции из таблицы products и соответствующее название каталога name из таблицы catalogs. */
+	/* Задача №2. Создайте представление, которое выводит название name товарной позиции из таблицы products
+	 * и соответствующее название каталога name из таблицы catalogs. */
 
 -- Воспользуемся учебной БД (shop_course_database)
 USE shop_course_database;
 
--- Просмотрим содержимое таблиц
-SELECT * FROM products, catalogs;
+-- Решим задачу без представления
+SELECT
+	p.name,
+	c.name
+FROM
+	products AS p
+JOIN
+	catalogs AS c
+ON
+	p.catalog_id = c.id;
 
 -- Создадим представление
-CREATE VIEW prodcat AS
+CREATE OR REPLACE VIEW products_catalogs AS
 	SELECT
-		p.name,
-		c.name as catalogs
-from products as p
-join catalogs as c
-on p.catalog_id = c.id;
-
--- Запросим список таблиц
-SHOW TABLES;
+		p.name AS product,
+		c.name AS catalog
+FROM
+	products AS p
+JOIN
+	catalogs AS c
+ON
+	p.catalog_id = c.id;
 
 -- Обратимся к представлению
-SELECT * FROM prodcat;
+SELECT * FROM products_catalogs;
 
+	/* Задача №3. (По желанию) Пусть имеется таблица с календарным полем created_at.
+	 * В ней размещены разряженые календарные записи за август 2018 года
+	 * '2018-08-01', '2016-08-04', '2018-08-16' и 2018-08-17.
+	 * Составьте запрос, который выводит полный список дат за август, выставляя в соседнем поле значение 1,
+	 * если дата присутствует в исходной таблице и 0, если она отсутствует. */
 
+-- Воспользуемся тестовой БД (different)
+USE different;
+
+-- Создадим таблицу posts
+CREATE TABLE IF NOT EXISTS posts (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255),
+	created_at DATE NOT NULL
+);
+
+-- Заполним таблицу posts
+INSERT INTO posts VALUES
+	(NULL, 'Первая запись', '2018-08-01'),
+	(NULL, 'Вторая запись', '2018-08-04'),
+	(NULL, 'Третья запись', '2018-08-16'),
+	(NULL, 'Четвертая запись', '2018-08-17');
+
+-- Выведем сожержимое таблицы posts
+SELECT * FROM posts;
+
+-- Создадим временную таблицу last_days которая позволит формировать список дней любого месяца в котором 31 день
+CREATE TEMPORARY TABLE last_days (
+	day INT
+);
+
+INSERT INTO last_days VALUES
+	(0), (1), (3), (4), (5), (6), (7), (8), (9), (10),
+	(11), (12), (13), (14), (15), (16), (17), (18), (19), (20),
+	(21), (22), (23), (24), (25), (26), (27), (28), (29), (30);
+
+-- Сформируем календарь за август 2018 года
+SELECT
+	DATE(DATE('2018-08-31') - INTERVAL l.day DAY) AS day
+FROM
+	last_days AS l
+ORDER BY
+	day;
+
+-- Сформируем результирующий запрос
+SELECT
+	DATE(DATE('2018-08-31') - INTERVAL l.day DAY) AS day,
+	NOT ISNULL(p.name) AS order_exist
+FROM
+	last_days AS l
+LEFT JOIN
+	posts AS p
+ON
+	DATE(DATE('2018-08-31') - INTERVAL l.day DAY) = p.created_at
+ORDER BY
+	day;
+
+	/* Задача №4 (По желанию) Пусть имеется любая таблица с календарным полем created_at.
+	 * Создайте запрос, который удаляет устаревшие записи из таблицы, оставляя только 5 самых свежих записей. */
+
+-- Воспользуемся таблицей posts только на этот раз вставим побольше записей
+DROP TABLE IF EXISTS posts;
+
+-- Создадим таблицу posts
+CREATE TABLE IF NOT EXISTS posts (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(255),
+	created_at DATE NOT NULL
+);
+
+-- Заполним таблицу posts
+INSERT INTO posts VALUES
+	(NULL, 'Первая запись', '2018-11-01'),
+	(NULL, 'Вторая запись', '2018-11-02'),
+	(NULL, 'Третья запись', '2018-11-03'),
+	(NULL, 'Четвертая запись', '2018-11-04'),
+	(NULL, 'Пятая запись', '2018-11-05'),
+	(NULL, 'Шестая запись', '2018-11-06'),
+	(NULL, 'Седьмая запись', '2018-11-07'),
+	(NULL, 'Восьмая запись', '2018-11-08'),
+	(NULL, 'Девятая запись', '2018-11-09'),
+	(NULL, 'Десятая запись', '2018-11-10');
+
+-- Выведем сожержимое таблицы posts
+SELECT * FROM posts;
+
+-- Начало транзакции
+START TRANSACTION;
+
+-- Сосчитаем количество записей в таблице posts
+SELECT COUNT(*) FROM posts;
+-- Выясним сколько записей нам предстоит удалить
+SELECT 10 - 5;
+-- Воспользуемся командой DELETE с ключевым словом LIMIT которому передадим значение 5
+DELETE FROM posts ORDER BY created_at LIMIT 5;
+
+-- Подтвердим транзакцию
+COMMIT;
+
+-- Проверим содержимое таблицы posts
+SELECT * FROM posts;
+
+	-- Решение с использованием динамических запросов
+-- Восстановим содержимое таблицы posts
+TRUNCATE posts;
+
+INSERT INTO posts VALUES
+	(NULL, 'Первая запись', '2018-11-01'),
+	(NULL, 'Вторая запись', '2018-11-02'),
+	(NULL, 'Третья запись', '2018-11-03'),
+	(NULL, 'Четвертая запись', '2018-11-04'),
+	(NULL, 'Пятая запись', '2018-11-05'),
+	(NULL, 'Шестая запись', '2018-11-06'),
+	(NULL, 'Седьмая запись', '2018-11-07'),
+	(NULL, 'Восьмая запись', '2018-11-08'),
+	(NULL, 'Девятая запись', '2018-11-09'),
+	(NULL, 'Десятая запись', '2018-11-10');
+
+-- Извлекаем сожержимое таблицы posts
+SELECT * FROM posts;
+
+-- Начало транзакции
+START TRANSACTION;
+
+-- Создаем динамический запрос с параметром в конструкции LIMIT
+PREPARE postdel FROM 'DELETE FROM posts ORDER BY created_at LIMIT ?';
+-- Значение для LIMIT подготовим в переменную total
+SET @total = (SELECT COUNT(*) - 5 FROM posts);
+-- Выполним динамический запрос при помощи команды EXECUTE
+EXECUTE postdel USING @total;
+
+-- Подтвердим транзакцию
+COMMIT;
+
+-- Посмотрим на результат
+SELECT * FROM posts;
+
+	-- Решение с использованием одного запроса
+-- Восстановим содержимое таблицы posts
+TRUNCATE posts;
+
+INSERT INTO posts VALUES
+	(NULL, 'Первая запись', '2018-11-01'),
+	(NULL, 'Вторая запись', '2018-11-02'),
+	(NULL, 'Третья запись', '2018-11-03'),
+	(NULL, 'Четвертая запись', '2018-11-04'),
+	(NULL, 'Пятая запись', '2018-11-05'),
+	(NULL, 'Шестая запись', '2018-11-06'),
+	(NULL, 'Седьмая запись', '2018-11-07'),
+	(NULL, 'Восьмая запись', '2018-11-08'),
+	(NULL, 'Девятая запись', '2018-11-09'),
+	(NULL, 'Десятая запись', '2018-11-10');
+
+-- Убедимся что таблица posts находится в исходном состоянии
+SELECT * FROM posts;
+
+-- Воспользуемся самообъединением таблиц и выполним многотабличный оператор DELETE
+DELETE
+	posts
+FROM
+	posts
+JOIN
+	(SELECT
+		created_at
+	FROM
+		posts
+	ORDER BY
+		created_at DESC
+	LIMIT 5, 1) AS delpst
+ON
+	posts.created_at <= delpst.created_at;
+
+-- Проверим содержимое таблицы posts
+SELECT * FROM posts;
 
 					-- Практическое задание по теме “Хранимые процедуры и функции, триггеры" --
+					
 	/* Задача №1. Создайте хранимую функцию hello(), которая будет возвращать приветствие, в зависимости от текущего времени суток.
 	 * С 6:00 до 12:00 функция должна возвращать фразу "Доброе утро",
 	 * с 12:00 до 18:00 функция должна возвращать фразу "Добрый день",
